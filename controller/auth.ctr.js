@@ -59,6 +59,10 @@ const login = async (req, res) => {
     }
 };
 
+const verify = () => {
+    
+}
+
 module.exports = {
     register,
     login
