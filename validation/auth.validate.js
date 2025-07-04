@@ -35,7 +35,30 @@ exports.AuthValidate = (data) => {
             .optional()
             .messages({
                 "any.only": "Rol faqat 'user' yoki 'admin' bo‘lishi mumkin"
-            })
+            }),
+        isVerified: Joi.boolean()
+        .optional()
+        .messages({
+            "boolean.base": "isVerified faqat true yoki false bo‘lishi kerak"
+        }),
+        otpTime: Joi.number().integer()
+        .min(0)
+        .optional()
+        .messages({
+            "number.base": "OTP vaqti raqam bo‘lishi kerak",
+            "number.integer": "OTP vaqti butun son bo‘lishi kerak",
+            "number.min": "OTP vaqti manfiy bo‘lishi mumkin emas"
+        }),
+        otp: Joi.number().integer()
+        .min(100000)
+        .max(999999)
+        .optional()
+        .messages({
+            "number.base": "OTP raqam bo‘lishi kerak",
+            "number.min": "OTP kamida 6 xonali raqam bo‘lishi kerak",
+            "number.max": "OTP 6 xonali raqamdan oshmasligi kerak",
+            "number.integer": "OTP butun son bo‘lishi kerak"
+        }),
     })
     return schema.validate(data, { abortEarly: false });
 }

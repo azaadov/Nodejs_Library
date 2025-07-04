@@ -1,10 +1,13 @@
 const {Router} = require("express")
-const { register, login } = require("../controller/auth.ctr")
-const { AuthValidate } = require("../validation/auth.validate")
+const { register, login, emailVerify, resendPassword } = require("../controller/auth.ctr")
+const authValidate = require("../middleware/authValidate")
+
 
 const AuthRouter = Router()
 
-AuthRouter.post("/register", AuthValidate, register)
-AuthRouter.post("/login", AuthValidate, login)
+AuthRouter.post("/register", authValidate,  register)
+AuthRouter.post("/verify", authValidate,  emailVerify)
+AuthRouter.post("/login", authValidate, login)
+AuthRouter.post("/resend_pasword", authValidate, resendPassword)
 
 module.exports=AuthRouter

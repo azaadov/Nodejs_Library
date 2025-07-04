@@ -20,7 +20,7 @@ connectedDB()
 app.use(authorRouter)
 app.use(BookRouter)
 app.use(errorHandler)
-app.use(AuthRouter)
+app.use("/auth", AuthRouter)
 
 app.use((req, res, next) => {
     res.status(404).json({ msg: "Sahifa topilmadi" });

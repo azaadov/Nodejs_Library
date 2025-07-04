@@ -24,10 +24,39 @@ const UserSchema = new mongoose.Schema({
     role: {
         type: String,
         enum: {
-            values: ["user", "admin"],
+            values: ["user", "admin", "superadmin"],
             message: "{VALUE} ushbu rol mavjud emas"
         },
-        default: "user"
+        default: "user",
+        required: false
+    },
+    otp: {
+        type: Number,
+        min: [100000, "OTP kamida 6 xonali bo‘lishi kerak"],
+        max: [999999, "OTP faqat 6 xonali bo‘lishi kerak"],
+        validate: {
+            validator: Number.isInteger,
+            message: "OTP butun son bo‘lishi kerak"
+        },
+        required: false
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
+        validate: {
+            validator: val => typeof val === "boolean",
+            message: "isVerified qiymati faqat true yoki false bo‘lishi mumkin"
+        },
+        required: false
+    },
+    otpTime: {
+        type: Number,
+        min: [0, "otpTime manfiy bo‘lishi mumkin emas"],
+        validate: {
+            validator: Number.isInteger,
+            message: "otpTime butun son bo‘lishi kerak"
+        },
+        required: false
     }
 }, {
     timestamps: true,

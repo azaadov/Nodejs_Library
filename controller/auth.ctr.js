@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const AuthModel = require("../schema/auth.schema");
+const emailService = require("../utils/nodemailer")
 
 
 const register = async (req, res) => {
@@ -16,18 +17,78 @@ const register = async (req, res) => {
         }
 
         const hashPassword = await bcrypt.hash(password, 8);
+
+        const randomNumber = +Array.from({ length: 6 }, () => Math.floor(Math.random() * 9) + 1).join("")
+
+        const otpTimeNow = Date.now() + 120000
+
+
         const newUser = await AuthModel.create({
             username,
             email,
-            password: hashPassword
+            password: hashPassword,
+            otp: randomNumber,
+            otpTime: otpTimeNow
         });
 
-        res.status(201).json({ msg: "Ro‘yxatdan o‘tildi", userId: newUser._id });
+        emailService(email, randomNumber)   
+
+        res.status(201).json({ msg: "Ro‘yxatdan o‘tildi emailni tasdiqlang", userId: newUser._id });
     } catch (err) {
-        console.log(err);
         res.status(500).json({ msg: "Server xatosi" });
     }
 };
+
+
+const resendPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        const existingUser = await AuthModel.findOne({ email });
+        if (!existingUser) {
+            return res.status(409).json({ msg: "email topilmadi" });
+        }
+
+        
+        const randomNumber = +Array.from({ length: 6 }, () => Math.floor(Math.random() * 9) + 1).join("")
+
+        const otpTimeNow = Date.now() + 120000
+
+        await AuthModel.findOneAndUpdate({email}, {otp: randomNumber, otpTime: otpTimeNow, isVerified: false})
+
+        emailService(email, randomNumber)   
+
+        res.status(201).json({ msg: "yangi parol jonatildi"});
+    } catch (err) {
+        res.status(500).json({ msg: "Server xatosi" });
+    }
+};
+
+
+const emailVerify = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        const existingUser = await AuthModel.findOne({ email });
+       
+        if(otp!==existingUser.otp){
+            return res.status(404).json({msg: "parol notog'ri"})
+        }
+
+        const now = Date.now()
+
+        if(existingUser.otpTime<now){
+            await AuthModel.findOneAndUpdate({email: email}, {otpTime: null})
+            return res.status(401).json({msg: "parol eskirdi"})
+        }
+
+        await AuthModel.findOneAndUpdate({email: email}, {isVerified: true})
+        res.status(201).json({msg: "email tasdiqlandi"})
+    } catch (err) {
+        res.status(500).json({ msg: "Server xatosi" });
+    }
+};
+
 
 const login = async (req, res) => {
     try {
@@ -46,24 +107,25 @@ const login = async (req, res) => {
             return res.status(401).json({ msg: "Parol noto‘g‘ri" });
         }
 
-        const token = jwt.sign(
-            { id: user._id, email: user.email, role: user.role }, 
-            process.env.JWT_SEKRET,
-            { expiresIn: "1d" }
-        );
-
-        res.status(200).json({ msg: "Kirish muvaffaqiyatli", token });
+        if(isMatch && user.isVerified){
+            const token = jwt.sign(
+                { id: user._id, email: user.email, role: user.role },
+                process.env.JWT_SEKRET,
+                { expiresIn: "1h" }
+            );
+           return res.status(200).json({ msg: "Kirish muvaffaqiyatli", token });
+        }else{
+            res.status(401).json({msg: "Kirish amalga oshmadi"})
+        }
     } catch (err) {
         console.log(err);
         res.status(500).json({ msg: "Server xatosi" });
     }
 };
 
-const verify = () => {
-    
-}
-
 module.exports = {
     register,
-    login
+    login,
+    emailVerify,
+    resendPassword
 };
