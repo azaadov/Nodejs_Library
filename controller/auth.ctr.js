@@ -1,10 +1,11 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const AuthModel = require("../schema/auth.schema");
-const emailService = require("../utils/nodemailer")
+const emailService = require("../utils/nodemailer");
+const { accestokenGenerate, refreshtokenGenerate } = require("../utils/token_generator");
 
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
     try {
         const { username, email, password } = req.body;
         if (!username || !email || !password) {
@@ -31,16 +32,16 @@ const register = async (req, res) => {
             otpTime: otpTimeNow
         });
 
-        emailService(email, randomNumber)   
+        emailService(email, randomNumber)
 
         res.status(201).json({ msg: "Ro‘yxatdan o‘tildi emailni tasdiqlang", userId: newUser._id });
     } catch (err) {
-        res.status(500).json({ msg: "Server xatosi" });
+        next(err)
     }
 };
 
 
-const resendPassword = async (req, res) => {
+const resendCode = async (req, res, next) => {
     try {
         const { email } = req.body;
 
@@ -49,48 +50,48 @@ const resendPassword = async (req, res) => {
             return res.status(409).json({ msg: "email topilmadi" });
         }
 
-        
+
         const randomNumber = +Array.from({ length: 6 }, () => Math.floor(Math.random() * 9) + 1).join("")
 
         const otpTimeNow = Date.now() + 120000
 
-        await AuthModel.findOneAndUpdate({email}, {otp: randomNumber, otpTime: otpTimeNow, isVerified: false})
+        await AuthModel.findOneAndUpdate({ email }, { otp: randomNumber, otpTime: otpTimeNow, isVerified: false })
 
-        emailService(email, randomNumber)   
+        emailService(email, randomNumber)
 
-        res.status(201).json({ msg: "yangi parol jonatildi"});
+        res.status(201).json({ msg: "yangi parol jonatildi" });
     } catch (err) {
-        res.status(500).json({ msg: "Server xatosi" });
+        next(err)
     }
 };
 
 
-const emailVerify = async (req, res) => {
+const emailVerify = async (req, res, next) => {
     try {
         const { email, otp } = req.body;
 
         const existingUser = await AuthModel.findOne({ email });
-       
-        if(otp!==existingUser.otp){
-            return res.status(404).json({msg: "parol notog'ri"})
+
+        if (otp !== existingUser.otp) {
+            return res.status(404).json({ msg: "parol notog'ri" })
         }
 
         const now = Date.now()
 
-        if(existingUser.otpTime<now){
-            await AuthModel.findOneAndUpdate({email: email}, {otpTime: null})
-            return res.status(401).json({msg: "parol eskirdi"})
+        if (existingUser.otpTime < now) {
+            await AuthModel.findOneAndUpdate({ email: email }, { otpTime: null })
+            return res.status(401).json({ msg: "parol eskirdi" })
         }
 
-        await AuthModel.findOneAndUpdate({email: email}, {isVerified: true})
-        res.status(201).json({msg: "email tasdiqlandi"})
+        await AuthModel.findOneAndUpdate({ email: email }, { isVerified: true })
+        res.status(201).json({ msg: "email tasdiqlandi" })
     } catch (err) {
-        res.status(500).json({ msg: "Server xatosi" });
+        next(err)
     }
 };
 
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
@@ -107,19 +108,70 @@ const login = async (req, res) => {
             return res.status(401).json({ msg: "Parol noto‘g‘ri" });
         }
 
-        if(isMatch && user.isVerified){
-            const token = jwt.sign(
-                { id: user._id, email: user.email, role: user.role },
-                process.env.JWT_SEKRET,
-                { expiresIn: "1h" }
-            );
-           return res.status(200).json({ msg: "Kirish muvaffaqiyatli", token });
-        }else{
-            res.status(401).json({msg: "Kirish amalga oshmadi"})
+        if (isMatch && user.isVerified) {
+            const payload = { id: user._id, email: user.email, role: user.role }
+            const acces_token = accestokenGenerate(payload)
+            const refresh_token = refreshtokenGenerate(payload)
+
+            res.cookie("accesToken", acces_token, { httpOnly: true, maxAge: 1000 * 15 * 60 })
+            res.cookie("refreshToken", refresh_token, { httpOnly: true, maxAge: 1000 * 60 * 60 * 24 * 7 })
+
+            return res.status(200).json({ msg: "Kirish muvaffaqiyatli", acces_token });
+        } else {
+            res.status(401).json({ msg: "Kirish amalga oshmadi" })
         }
     } catch (err) {
-        console.log(err);
-        res.status(500).json({ msg: "Server xatosi" });
+        next(err)
+    }
+};
+
+
+const forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        const user = await AuthModel.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ msg: "Foydalanuvchi topilmadi" });
+        }
+
+        await AuthModel.updateOne({ email: email }, { isVerified: false })
+
+        res.status(201).json({ msg: "Kod yuborildi emailni tekshiring" })
+    } catch (err) {
+        next(err)
+    }
+};
+
+const changePassword = async (req, res, next) => {
+    try {
+        const { email, new_password } = req.body;
+
+        const user = await AuthModel.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ msg: "Foydalanuvchi topilmadi" });
+        }
+
+        if (user.isVerified) {
+            const hashPassword = await bcrypt.hash(new_password, 10)
+            await AuthModel.updateOne({ email: email }, { password: hashPassword })
+        }
+
+        await AuthModel.updateOne({ email: email }, { isVerified: false })
+
+        res.status(201).json({ msg: "Parol o'zgartirildi" })
+    } catch (err) {
+        next(err)
+    }
+};
+
+const logout = async (req, res, next) => {
+    try {
+        res.clearCookie("accesToken")
+        res.clearCookie("refreshToken")
+        res.status(200).json({ msg: "Logout" })
+    } catch (err) {
+        next(err)
     }
 };
 
@@ -127,5 +179,8 @@ module.exports = {
     register,
     login,
     emailVerify,
-    resendPassword
+    resendCode,
+    forgotPassword,
+    changePassword,
+    logout
 };

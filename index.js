@@ -6,11 +6,13 @@ const BookRouter = require("./router/book.routes")
 const errorHandler = require("./errorHandler")
 const AuthRouter = require("./router/auth.routes")
 require("dotenv").config({path: ".env"})
+const cokieParser = require("cookie-parser")
 
 
 const app=express()
 app.use(cors({credentials:true}))
 app.use(express.json())
+app.use(cokieParser())
 const PORT = process.env.PORT || 4000
 
 connectedDB()

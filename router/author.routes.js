@@ -1,17 +1,21 @@
-const {Router} = require("express")
+const { Router } = require("express")
 const { getAllAuthors, addAuthor, getOneAuthor, updateAuthor, deleteAuthor, search } = require("../controller/author.ctr")
 const authorValidateMiddleware = require("../middleware/author.validate.middleware")
 const checkAdmin = require("../middleware/checkAdmin")
+const accesToken_middleware = require("../middleware/accesToken_middleware")
+
+console.log("checkAdmin:", typeof checkAdmin)
+console.log("accesToken_middleware:", typeof accesToken_middleware)
+console.log("authorValidateMiddleware:", typeof authorValidateMiddleware)
 
 
+const authorRouter = Router()
 
-const authorRouter=Router()
+authorRouter.get("/get_all_authors", accesToken_middleware, getAllAuthors)
+authorRouter.get("/search_author", accesToken_middleware, search)
+authorRouter.get("/get_one_author/:id", accesToken_middleware, getOneAuthor)
+authorRouter.post("/add_author", [accesToken_middleware, checkAdmin, authorValidateMiddleware], addAuthor)
+authorRouter.put("/update_author/:id", [checkAdmin, accesToken_middleware, authorValidateMiddleware], updateAuthor)
+authorRouter.delete("/delete_author/:id", [checkAdmin, accesToken_middleware], deleteAuthor)
 
-authorRouter.get("/get_all_authors", getAllAuthors)
-authorRouter.get("/search_author", search)
-authorRouter.get("/get_one_author/:id", getOneAuthor)
-authorRouter.post("/add_author", checkAdmin, authorValidateMiddleware, addAuthor)
-authorRouter.put("/update_author/:id", checkAdmin, updateAuthor)
-authorRouter.delete("/delete_author/:id", checkAdmin, deleteAuthor)
-
-module.exports=authorRouter
+module.exports = authorRouter

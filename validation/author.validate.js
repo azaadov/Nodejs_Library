@@ -1,6 +1,6 @@
 const Joi = require("joi")
 
-exports.authorValidate = (data) => {
+module.exports=authorValidate = (data) => {
     const schema = Joi.object({
         fulName: Joi.string().min(3).max(50).messages({
             "string.empty": `"F.I.Sh." bo‘sh bo‘lishi mumkin emas`,
