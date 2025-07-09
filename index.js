@@ -7,6 +7,8 @@ const errorHandler = require("./errorHandler")
 const AuthRouter = require("./router/auth.routes")
 require("dotenv").config({path: ".env"})
 const cokieParser = require("cookie-parser")
+const commentRouter = require("./router/comment.routes")
+
 
 
 const app=express()
@@ -23,6 +25,8 @@ app.use(authorRouter)
 app.use(BookRouter)
 app.use(errorHandler)
 app.use("/auth", AuthRouter)
+app.use(commentRouter)
+
 
 app.use((req, res, next) => {
     res.status(404).json({ msg: "Sahifa topilmadi" });

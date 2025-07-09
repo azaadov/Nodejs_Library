@@ -5,8 +5,8 @@ module.exports = function accesTokenMidlleware(req, res, next) {
         const accessToken = req.cookies.accessToken
 
         if (!accessToken) {
-          return  res.status(404).json({ msg: "Access token not found" })
-        }
+            return res.status(404).json({ msg: "Access token not found" })
+        }    
 
         const decode = jwt.verify(accessToken, process.env.JWT_SEKRET)
         req.user = decode

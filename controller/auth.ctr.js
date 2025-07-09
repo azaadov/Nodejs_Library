@@ -110,13 +110,13 @@ const login = async (req, res, next) => {
 
         if (isMatch && user.isVerified) {
             const payload = { id: user._id, email: user.email, role: user.role }
-            const acces_token = accestokenGenerate(payload)
+            const access_token = accestokenGenerate(payload)
             const refresh_token = refreshtokenGenerate(payload)
 
-            res.cookie("accesToken", acces_token, { httpOnly: true, maxAge: 1000 * 15 * 60 })
+            res.cookie("accessToken", access_token, { httpOnly: true, maxAge: 1000 * 15 * 60 })
             res.cookie("refreshToken", refresh_token, { httpOnly: true, maxAge: 1000 * 60 * 60 * 24 * 7 })
 
-            return res.status(200).json({ msg: "Kirish muvaffaqiyatli", acces_token });
+            return res.status(200).json({ msg: "Kirish muvaffaqiyatli", access_token });
         } else {
             res.status(401).json({ msg: "Kirish amalga oshmadi" })
         }

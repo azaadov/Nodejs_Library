@@ -4,10 +4,6 @@ const authorValidateMiddleware = require("../middleware/author.validate.middlewa
 const checkAdmin = require("../middleware/checkAdmin")
 const accesToken_middleware = require("../middleware/accesToken_middleware")
 
-console.log("checkAdmin:", typeof checkAdmin)
-console.log("accesToken_middleware:", typeof accesToken_middleware)
-console.log("authorValidateMiddleware:", typeof authorValidateMiddleware)
-
 
 const authorRouter = Router()
 
