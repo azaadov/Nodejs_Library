@@ -8,6 +8,7 @@ const AuthRouter = require("./router/auth.routes")
 require("dotenv").config({path: ".env"})
 const cokieParser = require("cookie-parser")
 const commentRouter = require("./router/comment.routes")
+const { swaggerUi, swaggerSpec } = require("./utils/swagger")
 
 
 
@@ -26,6 +27,7 @@ app.use(BookRouter)
 app.use(errorHandler)
 app.use("/auth", AuthRouter)
 app.use(commentRouter)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 app.use((req, res, next) => {
